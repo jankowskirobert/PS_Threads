@@ -3,7 +3,6 @@ package com.psthreads;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,25 +14,17 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
-import javax.swing.JTextField;
 import javax.swing.text.NumberFormatter;
 
-public class Task2 extends JFrame implements Provider, ActionListener {
+public class Task3 extends JFrame implements Provider {
 
 	private final JTextArea console = new JTextArea();
 	private final JScrollPane scrollPane = new JScrollPane(console);
 	private final Dimension windowSize = new Dimension(400, 600);
-	private final JButton clearConsole = new JButton("Clear");
-	private final JButton runThread = new JButton("Run");
-	private final JButton stopThread = new JButton("Stop");
-	private final JPanel bottomControlPane = new JPanel();
-	private final NumberFormat format = NumberFormat.getInstance();
-	private final NumberFormatter formatter = new NumberFormatter(format);
-	private final JFormattedTextField field = new JFormattedTextField(formatter);
 	//
 	private List<Thread> messages = new ArrayList<>();
 
-	public Task2() {
+	public Task3() {
 		initUI();
 		setUpThreads();
 	}
@@ -53,31 +44,9 @@ public class Task2 extends JFrame implements Provider, ActionListener {
 		this.setDefaultCloseOperation(EXIT_ON_CLOSE);
 		//
 		this.add(scrollPane, BorderLayout.CENTER);
-		bottomUI();
-		this.add(bottomControlPane, BorderLayout.SOUTH);
 		//
 		this.pack();
 		this.setVisible(true);
-	}
-
-	private void bottomUI() {
-		bottomControlPane.setLayout(new BoxLayout(bottomControlPane, BoxLayout.LINE_AXIS));
-		bottomControlPane.add(runThread);
-		bottomControlPane.add(stopThread);
-		bottomControlPane.add(clearConsole);
-		bottomControlPane.add(field);
-		//
-		formatter.setValueClass(Integer.class);
-		formatter.setMinimum(0);
-		formatter.setMaximum(Integer.MAX_VALUE);
-		formatter.setAllowsInvalid(false);
-		formatter.setCommitsOnValidEdit(true);
-		//
-		console.setAutoscrolls(true);
-		//
-		clearConsole.addActionListener(this);
-		runThread.addActionListener(this);
-		stopThread.addActionListener(this);
 	}
 
 	private class Message implements Runnable {
@@ -92,7 +61,10 @@ public class Task2 extends JFrame implements Provider, ActionListener {
 
 		@Override
 		public void run() {
-			while (true) {
+			// while (true) {
+			synchronized (provider) {
+
+				provider.clean();
 				for (int i = 0; i < 10; i++)
 					this.provider.printOut(message + " " + i);
 				try {
@@ -101,8 +73,12 @@ public class Task2 extends JFrame implements Provider, ActionListener {
 					e.printStackTrace();
 				}
 			}
+			// }
 		}
+	}
 
+	public void runAll() {
+		messages.forEach(x -> x.start());
 	}
 
 	@Override
@@ -111,7 +87,8 @@ public class Task2 extends JFrame implements Provider, ActionListener {
 	}
 
 	public static void main(String[] args) {
-		new Task2();
+		Task3 t = new Task3();
+		t.runAll();
 	}
 
 	private void retryThread(int pos) {
@@ -126,35 +103,9 @@ public class Task2 extends JFrame implements Provider, ActionListener {
 	}
 
 	@Override
-	public void actionPerformed(ActionEvent e) {
-		if (e.getSource().equals(clearConsole))
-			console.setText("");
-		if (e.getSource().equals(runThread)) {
-			Integer val = (Integer) field.getValue();
-			printOut("Trying to start: " + val);
-			try {
-				messages.get(val).start();
-				printOut("Started: " + val);
-			} catch (IllegalThreadStateException ex) {
-				ex.printStackTrace();
-				retryThread(val);
-				printOut("Failture to start: " + val + " " + ex.getMessage());
-			}
-		}
-		if (e.getSource().equals(stopThread)) {
-			Integer val = (Integer) field.getValue();
-			printOut("Trying to stop: " + val);
-			try {
-				messages.get(val).stop();
-				printOut("Stopped: " + val);
-			} catch (ThreadDeath ex) {
-				printOut("Failture to stop: " + val + " " + ex.getMessage());
-			}
-		}
+	public void clean() {
+		console.setText("");
+
 	}
 
-}
-
-interface Provider {
-	public void printOut(String message);
 }
