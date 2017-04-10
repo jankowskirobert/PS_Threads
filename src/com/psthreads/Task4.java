@@ -6,6 +6,7 @@ import java.awt.event.ActionEvent;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -16,15 +17,19 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.text.NumberFormatter;
 
-public class Task3 extends JFrame implements Provider {
+public class Task4 extends JFrame implements Provider {
 
 	private final JTextArea console = new JTextArea();
 	private final JScrollPane scrollPane = new JScrollPane(console);
-	private final Dimension windowSize = new Dimension(400, 600);
+	private final Dimension windowSize = new Dimension(400, 800);
 	//
 	private List<Thread> messages = new ArrayList<>();
+	private List<Integer> ids = new ArrayList<>();
+	private final int MAX_THREADS = 3;
+	private final Semaphore sem = new Semaphore(MAX_THREADS);
+	//
 
-	public Task3() {
+	public Task4() {
 		initUI();
 		setUpThreads();
 	}
@@ -53,6 +58,7 @@ public class Task3 extends JFrame implements Provider {
 
 		private final String message;
 		private final Provider provider;
+		
 
 		Message(final String message, final Provider provider) {
 			this.message = message;
@@ -61,19 +67,19 @@ public class Task3 extends JFrame implements Provider {
 
 		@Override
 		public void run() {
-			// while (true) {
-			synchronized (provider) {
-
-				provider.clean();
-				for (int i = 0; i < 10; i++)
-					this.provider.printOut(message + " " + i);
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+			try {
+				sem.acquire();
+			} catch (InterruptedException e1) {
+				e1.printStackTrace();
 			}
-			// }
+			for (int i = 0; i < 10; i++)
+				this.provider.printOut(message + " " + i);
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			sem.release();
 		}
 	}
 
@@ -87,7 +93,7 @@ public class Task3 extends JFrame implements Provider {
 	}
 
 	public static void main(String[] args) {
-		Task3 t = new Task3();
+		Task4 t = new Task4();
 		t.runAll();
 	}
 
@@ -100,12 +106,6 @@ public class Task3 extends JFrame implements Provider {
 			e.printStackTrace();
 			printOut("Failture to start[retry]: " + pos + " " + e.getMessage());
 		}
-	}
-
-	@Override
-	public void clean() {
-		console.setText("");
-
 	}
 
 }
